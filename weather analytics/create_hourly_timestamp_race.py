@@ -63,6 +63,15 @@ CONFIG = {
     'BAR_TEXT_FONTWEIGHT': 'bold',
     'BAR_TEXT_COLOR': 'white',
     'X_LIMIT': (0, 46),
+    'MAX_COUNT_LABEL': 'Year Max Count',
+    'MAX_COUNT_LABEL_COLOR': '#fff',
+    'MAX_COUNT_LABEL_FONTSIZE': 11,
+    'MAX_COUNT_LABEL_Y': 0.90,
+    'MAX_COUNT_TEXT_FONTSIZE': 10,
+    'MAX_COUNT_TEXT_COLOR': '#fff',
+    'MAX_COUNT_POS_X': 0.5,
+    'MAX_COUNT_START_Y': 0.84,
+    'MAX_COUNT_LINE_SPACING': 0.025,
 }
 
 MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -171,6 +180,26 @@ def create_video():
 
     total = len(timeline)
 
+    # Track how many times each year has the max temperature per timestamp
+    max_counts = {y: 0 for y in YEARS}
+
+    max_count_label = fig.text(CONFIG['MAX_COUNT_POS_X'], CONFIG['MAX_COUNT_LABEL_Y'],
+                               CONFIG['MAX_COUNT_LABEL'],
+                               ha='center', va='center',
+                               color=CONFIG['MAX_COUNT_LABEL_COLOR'],
+                               fontsize=CONFIG['MAX_COUNT_LABEL_FONTSIZE'],
+                               fontweight='bold')
+
+    max_count_texts = {}
+    for i, year in enumerate(YEARS):
+        y_pos = CONFIG['MAX_COUNT_START_Y'] + i * CONFIG['MAX_COUNT_LINE_SPACING']
+        mt = fig.text(CONFIG['MAX_COUNT_POS_X'], y_pos, '',
+                      ha='center', va='center',
+                      color=CONFIG['MAX_COUNT_TEXT_COLOR'],
+                      fontsize=CONFIG['MAX_COUNT_TEXT_FONTSIZE'],
+                      fontweight='bold')
+        max_count_texts[year] = mt
+
     def animate(idx):
         month, day, hour = timeline[idx]
 
@@ -187,6 +216,22 @@ def create_video():
 
         order = sorted(range(len(YEARS)), key=lambda i: -values[i])
 
+        # Determine which year has the max temperature at this timestamp
+        max_val = -float('inf')
+        max_year = None
+        for yi in range(len(YEARS)):
+            if values[yi] > max_val:
+                max_val = values[yi]
+                max_year = YEARS[yi]
+        if max_year is not None:
+            max_counts[max_year] += 1
+
+        # Update max count text displays
+        for year in YEARS:
+            max_count_texts[year].set_text(
+                f'{year}: {max_counts[year]}'
+            )
+
         for rank, yi in enumerate(order):
             v = max(values[yi], 0)
             bars[yi].set_y(rank - bar_h / 2)
@@ -195,7 +240,9 @@ def create_video():
             bars[yi].set_color(CONFIG['COLORS'][YEARS[yi]])
 
             bar_texts[yi].set_position((CONFIG['TEXT_POS_X'], rank))
-            bar_texts[yi].set_text(f'{labels[yi]}   {v:.1f}°C')
+            bar_texts[yi].set_text(
+                f'{labels[yi]}   {v:.1f}°C   #{max_counts[YEARS[yi]]}'
+            )
 
         ampm = 'AM' if hour < 12 else 'PM'
         h12 = hour % 12 or 12
@@ -213,7 +260,8 @@ def create_video():
 
         progress_bar.set_width((idx + 1) / total * 0.9)
         return (list(bars) + bar_texts
-                + [clock_text, diff_text, progress_bar])
+                + [clock_text, diff_text, progress_bar, max_count_label]
+                + list(max_count_texts.values()))
 
     import subprocess
 
