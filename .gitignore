@@ -37,5 +37,10 @@ Thumbs.db
 /tmp/
 *.tmp
 
+# Kilo CLI configuration
+.kilo/
+kilo/
+
 # NOTE: Videos (*.mp4) and datasets (datasets/, *.json, *.csv) are
 # intentionally NOT ignored so the generated media and data can be pushed.
+.kilo
