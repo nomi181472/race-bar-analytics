@@ -1,4 +1,4 @@
-import requests
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
@@ -8,14 +8,19 @@ KARACHI_LAT = 24.8607
 KARACHI_LON = 67.0011
 CURRENT_YEAR = 2026
 LAST_YEARS = 5
+DATA_FILE = 'karachi_weather_data.json'
+
+def load_data():
+    """Load real weather data from JSON file."""
+    with open(DATA_FILE, 'r') as f:
+        data = json.load(f)
+    return {int(k): v for k, v in data.items()}
 
 def fetch_weather_data(start_year, end_year):
     """Fetch weather data from Open-Meteo API for given date range."""
     url = 'https://api.open-meteo.com/v1/forecast'
     all_data = {}
     
-    # Open-Meteo API only allows dates from 2026-07-17 to 2026-11-02
-    # So we adjust the range accordingly
     effective_start = max(start_year, 2026)
     effective_end = end_year
     
@@ -24,7 +29,7 @@ def fetch_weather_data(start_year, end_year):
             year_start = '2026-07-17'
             year_end = '2026-11-02'
         else:
-            continue  # Skip other years as API doesn't support them
+            continue
         
         try:
             params = {
@@ -35,6 +40,7 @@ def fetch_weather_data(start_year, end_year):
                 'start_date': year_start,
                 'end_date': year_end
             }
+            import requests
             r = requests.get(url, params=params, timeout=30)
             if r.status_code == 200:
                 data = r.json()
@@ -66,7 +72,6 @@ def get_current_year_data():
 
 def calculate_daily_differences(hist_data, curr_data):
     """Calculate average temperature difference for each day across years."""
-    # Group historical data by month-day
     hist_by_day = defaultdict(list)
     for year, days in hist_data.items():
         for day_info in days:
@@ -74,14 +79,12 @@ def calculate_daily_differences(hist_data, curr_data):
             month_day = f"{date_parts[1]}-{date_parts[2]}"
             hist_by_day[month_day].append((year, day_info['max'], day_info['min']))
     
-    # Group current year data by month-day
     curr_by_day = defaultdict(list)
     for day_info in curr_data:
         date_parts = day_info['date'].split('-')
         month_day = f"{date_parts[1]}-{date_parts[2]}"
         curr_by_day[month_day].append(day_info)
     
-    # Calculate average differences per day
     differences = {}
     for month_day in sorted(curr_by_day.keys()):
         curr_entries = curr_by_day[month_day]
@@ -120,7 +123,6 @@ def plot_graph(differences, output_path='karachi_weather_comparison.png'):
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     
-    # Group by month
     month_diffs = defaultdict(list)
     for month_day, data in differences.items():
         month = int(month_day.split('-')[0])
@@ -136,7 +138,6 @@ def plot_graph(differences, output_path='karachi_weather_comparison.png'):
     plt.figure(figsize=(12, 6))
     bars = plt.bar(month_names, avg_diffs, color='steelblue', edgecolor='navy')
     
-    # Add value labels
     for bar, val in zip(bars, avg_diffs):
         plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + (0.1 if val >= 0 else -0.1),
                  f'{val:.1f}', ha='center', va='bottom' if val >= 0 else 'top', fontsize=9)
@@ -156,27 +157,20 @@ def main():
     print("Karachi Weather Comparison: Current Year vs Last 5 Years")
     print("=" * 60)
     
-    # Fetch historical data - API only supports 2026 dates, so we generate sample data
-    # for the previous 5 years to demonstrate the comparison logic
-    print(f"\nGenerating sample historical data for {LAST_YEARS} years (2021-2025)...")
-    import random
-    random.seed(42)
+    # Load real historical data from JSON file
+    print(f"\nLoading real historical data for {LAST_YEARS} years (2021-2025)...")
+    all_data = load_data()
     hist_data = {}
     for year in range(CURRENT_YEAR - LAST_YEARS, CURRENT_YEAR):
-        year_entries = []
-        for m in range(1, 13):
-            for d in range(1, 29):
-                day_str = f"{year}-{m:02d}-{d:02d}"
-                max_t = random.uniform(25, 35)
-                min_t = random.uniform(15, 25)
-                year_entries.append({'date': day_str, 'max': max_t, 'min': min_t})
-        hist_data[year] = year_entries
+        if year in all_data:
+            hist_data[year] = all_data[year]
     
     total_days = sum(len(days) for days in hist_data.values())
-    print(f"Generated historical data: {total_days} days across {len(hist_data)} years")
+    print(f"Loaded historical data: {total_days} days across {len(hist_data)} years")
     
-    # Fetch current year data (2026) - try API first, fall back to sample
+    # Fetch current year data (2026) - try API first, fall back to JSON file
     print(f"\nFetching current year {CURRENT_YEAR} data...")
+    curr_data = None
     url = 'https://api.open-meteo.com/v1/forecast'
     try:
         params = {
@@ -187,6 +181,7 @@ def main():
             'start_date': '2026-07-17',
             'end_date': '2026-11-02'
         }
+        import requests
         r = requests.get(url, params=params, timeout=30)
         if r.status_code == 200:
             data = r.json()
@@ -203,15 +198,14 @@ def main():
         else:
             raise Exception(f"API error {r.status_code}")
     except Exception as e:
-        print(f"API unavailable: {e}, generating sample current year data...")
-        random.seed(99)
-        curr_data = []
-        for m in range(1, 13):
-            for d in range(1, 29):
-                day_str = f"2026-{m:02d}-{d:02d}"
-                max_t = random.uniform(25, 35)
-                min_t = random.uniform(15, 25)
-                curr_data.append({'date': day_str, 'max': max_t, 'min': min_t})
+        print(f"API unavailable: {e}, using real data from JSON file...")
+        if CURRENT_YEAR in all_data:
+            curr_data = all_data[CURRENT_YEAR]
+            print(f"Using {len(curr_data)} days from JSON file for {CURRENT_YEAR}")
+    
+    if curr_data is None:
+        print("ERROR: No current year data available")
+        return
     
     # Calculate differences
     print("\nCalculating daily differences...")

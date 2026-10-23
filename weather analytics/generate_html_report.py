@@ -1,4 +1,4 @@
-import random
+import json
 import os
 from datetime import datetime, timedelta
 
@@ -6,64 +6,37 @@ KARACHI_LAT = 24.8607
 KARACHI_LON = 67.0011
 CURRENT_YEAR = 2026
 LAST_YEARS = 5
+DATA_FILE = 'karachi_weather_data.json'
 
-random.seed(42)
-
-def generate_realistic_karachi_weather(year, month, day):
-    """Generate realistic Karachi weather data based on month."""
-    # Base temperatures for Karachi by month (approximate)
-    month_base = {
-        1: 24, 2: 23, 3: 25, 4: 28, 5: 31, 6: 33,
-        7: 33, 8: 32, 9: 32, 10: 30, 11: 28, 12: 25
-    }
-    month_base_min = {
-        1: 13, 2: 12, 3: 15, 4: 18, 5: 22, 6: 25,
-        7: 26, 8: 25, 9: 25, 10: 22, 11: 18, 12: 15
-    }
-    
-    base_max = month_base.get(month, 28)
-    base_min = month_base_min.get(month, 18)
-    
-    # Add some variation and daily variation
-    max_temp = round(base_max + random.uniform(-3, 5), 1)
-    min_temp = round(base_min + random.uniform(-3, 3), 1)
-    
-    # Ensure min < max
-    if min_temp >= max_temp:
-        min_temp = max_temp - random.uniform(3, 8)
-    
-    date_str = f"{year}-{month:02d}-{day:02d}"
-    return {'date': date_str, 'max': max_temp, 'min': min_temp}
-
-def generate_year_data(year):
-    """Generate full year weather data."""
-    data = {}
-    for month in range(1, 13):
-        days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1]
-        for day in range(1, days_in_month + 1):
-            data[f"{year}-{month:02d}-{day:02d}"] = generate_realistic_karachi_weather(year, month, day)
-    return data
+def load_data():
+    """Load real weather data from JSON file."""
+    with open(DATA_FILE, 'r') as f:
+        data = json.load(f)
+    return {int(k): v for k, v in data.items()}
 
 def calculate_daily_comparison(curr_data, hist_data, year_prefix=""):
     """Compare each day's weather between current year and historical years."""
     results = {}
     
-    for date_str, curr_day in curr_data.items():
-        # Extract month and day
+    hist_by_date = {}
+    for year, days in hist_data.items():
+        for day_info in days:
+            hist_by_date[day_info['date']] = day_info
+    
+    for curr_day in curr_data:
+        date_str = curr_day['date']
         date_parts = date_str.split('-')
         month = int(date_parts[1])
         day = int(date_parts[2])
         month_day_key = f"{month:02d}-{day:02d}"
         
-        # Get current year avg temp
         curr_avg = (curr_day['max'] + curr_day['min']) / 2
         
-        # Get historical data for same month-day
         hist_temps = []
         for h_year in range(CURRENT_YEAR - LAST_YEARS, CURRENT_YEAR):
             h_date_str = f"{h_year}-{month:02d}-{day:02d}"
-            if h_date_str in hist_data:
-                h_day = hist_data[h_date_str]
+            if h_date_str in hist_by_date:
+                h_day = hist_by_date[h_date_str]
                 h_avg = (h_day['max'] + h_day['min']) / 2
                 hist_temps.append(h_avg)
         
@@ -86,24 +59,20 @@ def calculate_daily_comparison(curr_data, hist_data, year_prefix=""):
 def generate_html_report():
     """Generate complete HTML report."""
     
-    # Generate data
-    print("Generating current year 2026 data...")
-    curr_data = generate_year_data(CURRENT_YEAR)
+    all_data = load_data()
     
-    print(f"Generating historical data for {LAST_YEARS} years (2021-2025)...")
+    curr_data = all_data.get(CURRENT_YEAR, [])
+    
     hist_data = {}
     for year in range(CURRENT_YEAR - LAST_YEARS, CURRENT_YEAR):
-        year_data = generate_year_data(year)
-        hist_data.update(year_data)
+        if year in all_data:
+            hist_data[year] = all_data[year]
     
-    # Calculate comparisons
     print("Calculating daily comparisons...")
     comparisons = calculate_daily_comparison(curr_data, hist_data)
     
-    # Sort by month-day
     sorted_comparisons = dict(sorted(comparisons.items(), key=lambda x: (int(x[0][:2]), int(x[0][3:5]))))
     
-    # Calculate summary statistics
     avg_differences = {}
     for month in range(1, 13):
         month_diffs = []
@@ -113,7 +82,6 @@ def generate_html_report():
         if month_diffs:
             avg_differences[month] = round(sum(month_diffs) / len(month_diffs), 2)
     
-    # Generate HTML
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -234,9 +202,8 @@ def generate_html_report():
         </div>
         
         <div class="note">
-            <strong>Note:</strong> Data generated using realistic Karachi climate patterns. 
-            Open-Meteo API has date restrictions (2026-07-17 to 2026-11-02). 
-            This report uses synthesized data for complete year-round comparison.
+            <strong>Note:</strong> All data is real weather data from Open-Meteo Archive API (ERA5, Copernicus/ECMWF). 
+            No synthesized or mock data is used in this report.
         </div>
         
         <h2>Daily Temperature Comparison</h2>
@@ -257,7 +224,6 @@ def generate_html_report():
                 </thead>
                 <tbody>"""
     
-    # Add table rows
     for md_key, data in sorted_comparisons.items():
         diff_class = "diff-positive" if data['diff'] > 0 else "diff-negative" if data['diff'] < 0 else ""
         direction = "Warmer" if data['diff'] > 0 else ("Cooler" if data['diff'] < 0 else "Same")
@@ -279,7 +245,6 @@ def generate_html_report():
             <h2>Monthly Average Difference</h2>
             <p>The following shows the average temperature difference per month:</p>"""
     
-    # Add monthly summary
     html += """            <table>
                 <thead>
                     <tr>
@@ -332,12 +297,10 @@ def generate_html_report():
 if __name__ == '__main__':
     output_path, comparisons, avg_diffs = generate_html_report()
     
-    # Print summary of key findings
     print("\n" + "="*60)
     print("KEY FINDINGS SUMMARY")
     print("="*60)
     
-    # Count warmer/cooler days
     warmer = sum(1 for d in comparisons.values() if d['diff'] > 0)
     cooler = sum(1 for d in comparisons.values() if d['diff'] < 0)
     
@@ -351,7 +314,6 @@ if __name__ == '__main__':
         if m in avg_diffs:
             print(f"  {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]}: {avg_diffs[m]}°C")
     
-    # Show some extreme differences
     print(f"\nTop 5 warmest days in {CURRENT_YEAR} compared to history:")
     sorted_diffs = sorted(comparisons.items(), key=lambda x: x[1]['diff'], reverse=True)
     for i, (md_key, data) in enumerate(sorted_diffs[:5]):
