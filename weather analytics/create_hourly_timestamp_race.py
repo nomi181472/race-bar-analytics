@@ -328,7 +328,7 @@ def create_video():
         if curr > 0 and hist:
             ha = np.mean(hist)
             diff_text.set_text(
-                f"2026: {curr:.1f}°C  |  5yr Avg: {ha:.1f}°C  |  Diff: {curr-ha:+.1f}°C")
+                f"2026: {curr:.1f}°C  |  11yr Avg: {ha:.1f}°C  |  Diff: {curr-ha:+.1f}°C")
         else:
             diff_text.set_text('')
 
