@@ -193,6 +193,29 @@ Increase `HOLD_FRAMES`, `TRANS_FRAMES`, or lower `FPS` to slow the animation dow
 `COLORS` maps each year to a fixed colour so a bar keeps its identity as it moves.
 Year labels are drawn inside each bar.
 
+### Rank-points score (hourly timestamp race)
+
+`create_hourly_timestamp_race.py` also draws a **cumulative rank-points score**
+next to every bar. For each timestamp (hour), every year earns points based on
+its temperature rank among all years in `YEARS`:
+
+| Rank | Points | Meaning |
+|------|--------|---------|
+| 1st (hottest) | 1.00 | Highest temperature at this hour |
+| 2nd | 0.83 | Second hottest |
+| 3rd | 0.67 | Middle-high |
+| 4th | 0.50 | Middle-low |
+| 5th | 0.33 | Second coldest |
+| 6th (coldest) | 0.17 | Lowest temperature at this hour |
+
+Scores accumulate frame by frame as the video plays. A year's bar shows
+`score: X.X` — the running sum of all rank-points earned so far. The higher the
+score, the more consistently that year ranked near the top across all hours.
+
+Example: if 2026 is the hottest at 1 AM on Jan 1, its score becomes `1.00`.
+If 2022 is second hottest, its score becomes `0.83`, and so on. The score grows
+continuously throughout the video.
+
 ---
 
 ## Methodology

@@ -63,15 +63,14 @@ CONFIG = {
     'BAR_TEXT_FONTWEIGHT': 'bold',
     'BAR_TEXT_COLOR': 'white',
     'X_LIMIT': (0, 46),
-    'MAX_COUNT_LABEL': 'Year Max Count',
-    'MAX_COUNT_LABEL_COLOR': '#fff',
-    'MAX_COUNT_LABEL_FONTSIZE': 11,
-    'MAX_COUNT_LABEL_Y': 0.90,
-    'MAX_COUNT_TEXT_FONTSIZE': 10,
-    'MAX_COUNT_TEXT_COLOR': '#fff',
-    'MAX_COUNT_POS_X': 0.5,
-    'MAX_COUNT_START_Y': 0.84,
-    'MAX_COUNT_LINE_SPACING': 0.025,
+    'SCORE_LABEL': 'Cumulative Rank-Points Score',
+    'SCORE_LABEL_COLOR': '#fff',
+    'SCORE_LABEL_FONTSIZE': 11,
+    'SCORE_COLOR': '#fff',
+    'SCORE_FONTSIZE': 10,
+    'SCORE_POS_X': 0.5,
+    'SCORE_START_Y': 0.84,
+    'SCORE_LINE_SPACING': 0.025,
 }
 
 MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -98,6 +97,24 @@ def build_year_maps(data):
 def build_timeline(year_maps):
     """Timeline = every available timestamp in 2026, sorted chronologically."""
     return sorted(year_maps[2026].keys())
+
+def compute_timestamp_scores(year_maps, month, day, hour):
+    """Compute rank-points scores for a single timestamp.
+
+    rank 1 (hottest) -> 6/6, rank 2 -> 5/6, ..., rank 6 -> 1/6.
+    Returns dict {year: score_for_this_timestamp}.
+    """
+    n_years = len(YEARS)
+    values = []
+    for year in YEARS:
+        t = year_maps[year].get((month, day, hour))
+        values.append(t if t is not None else 0.0)
+    # Sort year indices by temperature descending (rank 1 = hottest)
+    order = sorted(range(n_years), key=lambda i: -values[i])
+    scores = {}
+    for rank, yi in enumerate(order):
+        scores[YEARS[yi]] = (n_years - rank) / n_years
+    return scores
 
 def create_video():
     data = load_data()
@@ -180,25 +197,8 @@ def create_video():
 
     total = len(timeline)
 
-    # Track how many times each year has the max temperature per timestamp
-    max_counts = {y: 0 for y in YEARS}
-
-    max_count_label = fig.text(CONFIG['MAX_COUNT_POS_X'], CONFIG['MAX_COUNT_LABEL_Y'],
-                               CONFIG['MAX_COUNT_LABEL'],
-                               ha='center', va='center',
-                               color=CONFIG['MAX_COUNT_LABEL_COLOR'],
-                               fontsize=CONFIG['MAX_COUNT_LABEL_FONTSIZE'],
-                               fontweight='bold')
-
-    max_count_texts = {}
-    for i, year in enumerate(YEARS):
-        y_pos = CONFIG['MAX_COUNT_START_Y'] + i * CONFIG['MAX_COUNT_LINE_SPACING']
-        mt = fig.text(CONFIG['MAX_COUNT_POS_X'], y_pos, '',
-                      ha='center', va='center',
-                      color=CONFIG['MAX_COUNT_TEXT_COLOR'],
-                      fontsize=CONFIG['MAX_COUNT_TEXT_FONTSIZE'],
-                      fontweight='bold')
-        max_count_texts[year] = mt
+    # Running cumulative rank-points score per year (accumulates frame by frame)
+    year_scores = {y: 0.0 for y in YEARS}
 
     def animate(idx):
         month, day, hour = timeline[idx]
@@ -216,21 +216,10 @@ def create_video():
 
         order = sorted(range(len(YEARS)), key=lambda i: -values[i])
 
-        # Determine which year has the max temperature at this timestamp
-        max_val = -float('inf')
-        max_year = None
-        for yi in range(len(YEARS)):
-            if values[yi] > max_val:
-                max_val = values[yi]
-                max_year = YEARS[yi]
-        if max_year is not None:
-            max_counts[max_year] += 1
-
-        # Update max count text displays
+        # Accumulate rank-points score for this timestamp
+        ts_scores = compute_timestamp_scores(year_maps, month, day, hour)
         for year in YEARS:
-            max_count_texts[year].set_text(
-                f'{year}: {max_counts[year]}'
-            )
+            year_scores[year] += ts_scores[year]
 
         for rank, yi in enumerate(order):
             v = max(values[yi], 0)
@@ -241,7 +230,7 @@ def create_video():
 
             bar_texts[yi].set_position((CONFIG['TEXT_POS_X'], rank))
             bar_texts[yi].set_text(
-                f'{labels[yi]}   {v:.1f}°C   #{max_counts[YEARS[yi]]}'
+                f'{labels[yi]}   {v:.1f}°C   score: {year_scores[YEARS[yi]]:.1f}'
             )
 
         ampm = 'AM' if hour < 12 else 'PM'
@@ -260,8 +249,7 @@ def create_video():
 
         progress_bar.set_width((idx + 1) / total * 0.9)
         return (list(bars) + bar_texts
-                + [clock_text, diff_text, progress_bar, max_count_label]
-                + list(max_count_texts.values()))
+                + [clock_text, diff_text, progress_bar])
 
     import subprocess
 
