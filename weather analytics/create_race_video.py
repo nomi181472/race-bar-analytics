@@ -9,17 +9,23 @@ from matplotlib import rcParams
 DATA_FILE = 'karachi_weather_data.json'
 VIDEO_FILE = 'karachi_weather_race_chart.mp4'
 FPS = 10
-HOLD_FRAMES = 2
-TRANS_FRAMES = 5
-YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
+HOLD_FRAMES = 1
+TRANS_FRAMES = 0
+YEARS = list(range(2015, 2027))
 
 COLORS = {
+    2015: '#fd79a8',
+    2016: '#6c5ce7',
+    2017: '#a29bfe',
+    2018: '#74b9ff',
+    2019: '#00b894',
+    2020: '#1abc9c',
     2021: '#3498db',
     2022: '#2ecc71',
     2023: '#e74c3c',
     2024: '#f39c12',
     2025: '#9b59b6',
-    2026: '#e91e63'
+    2026: '#e91e63',
 }
 
 MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -119,7 +125,7 @@ def create_race_video():
     print(f"Total frames: {total}, Duration: {duration:.0f}s ({duration/60:.1f} min)")
 
     # Figure
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(12, 7), dpi=80)
     fig.patch.set_facecolor('#0f0f23')
     ax.set_facecolor('#0f0f23')
     rcParams['font.family'] = 'sans-serif'
@@ -153,7 +159,7 @@ def create_race_video():
     # Reserve headroom so title + date + diff don't overlap
     fig.subplots_adjust(top=0.80, bottom=0.13, left=0.08, right=0.97)
 
-    fig.text(0.5, 0.955, 'Karachi Day-by-Day Temperature Race 2021-2026',
+    fig.text(0.5, 0.955, 'Karachi Day-by-Day Temperature Race 2015-2026',
              ha='center', va='center', color='white', fontsize=18, fontweight='bold')
 
     date_text = ax.text(0.5, 1.16, '', transform=ax.transAxes,
@@ -205,13 +211,13 @@ def create_race_video():
             hist_avg = np.mean(hist_vals)
             d = curr - hist_avg
             diff_text.set_text(
-                f"2026: {curr:.1f}°C  |  5yr Avg: {hist_avg:.1f}°C  |  Diff: {d:+.1f}°C")
+                f"2026: {curr:.1f}°C  |  11yr Avg: {hist_avg:.1f}°C  |  Diff: {d:+.1f}°C")
 
         progress_bar.set_width(fd['progress'] * 0.9)
         return list(bars) + value_texts + year_labels + [date_text, diff_text, progress_bar]
 
     anim = animation.FuncAnimation(fig, animate, frames=total,
-                                   interval=1000 // FPS, blit=False, repeat=True)
+                                   interval=1000 // FPS, blit=True, repeat=True)
 
     writer = animation.FFMpegWriter(fps=FPS, bitrate=2000,
                                      extra_args=['-pix_fmt', 'yuv420p'])

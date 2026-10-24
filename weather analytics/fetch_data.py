@@ -60,4 +60,4 @@ def load_data():
 if __name__ == '__main__':
     data = fetch_all_years()
     for year in YEARS:
-        print(f"{year}: {len(data[str(year)])} days")
+        print(f"{year}: {len(data[year])} days")

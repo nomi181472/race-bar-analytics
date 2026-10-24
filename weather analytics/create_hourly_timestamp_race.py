@@ -31,7 +31,7 @@ CONFIG = {
     'BAR_EDGE_COLOR': 'white',
     'BAR_LINEWIDTH': 1.0,
     'BAR_HEIGHT': 0.6,
-    'FIG_SIZE': (12, 6.5),
+    'FIG_SIZE': (14, 8.0),
     'FIG_DPI': 90,
     'FIG_FACECOLOR': '#0f0f23',
     'AX_FACECOLOR': '#0f0f23',
@@ -63,7 +63,7 @@ CONFIG = {
     'SOURCE_FONTSIZE': 8,
     'SOURCE_POS': (0.99, 0.012),
     'SOURCE_HA': 'right',
-    'SUBPLOTS_ADJUST': {'top': 0.80, 'bottom': 0.18, 'left': 0.07, 'right': 0.98},
+    'SUBPLOTS_ADJUST': {'top': 0.80, 'bottom': 0.20, 'left': 0.07, 'right': 0.98},
     'TEXT_POS_X': 0.6,
     'BAR_TEXT_FONTSIZE': 9.2,
     'BAR_TEXT_FONTWEIGHT': 'bold',
@@ -77,10 +77,10 @@ CONFIG = {
     'SCORE_POS_X': 0.5,
     'SCORE_START_Y': 0.84,
     'SCORE_LINE_SPACING': 0.025,
-    'TREND_GRAPH_RECT': [0.07, 0.04, 0.86, 0.10],
+    'TREND_GRAPH_RECT': [0.04, 0.04, 0.92, 0.14],
     'TREND_GRAPH_TITLE': 'Cumulative Rank-Points Score by Year',
     'TREND_GRAPH_TITLE_COLOR': '#fff',
-    'TREND_GRAPH_TITLE_FONTSIZE': 11,
+    'TREND_GRAPH_TITLE_FONTSIZE': 10,
     'TREND_GRAPH_YLABEL': 'Score',
     'TREND_GRAPH_YLABEL_COLOR': '#aaa',
     'TREND_GRAPH_YLABEL_FONTSIZE': 9,
@@ -90,8 +90,11 @@ CONFIG = {
     'TREND_GRAPH_TICK_COLOR': '#888',
     'TREND_GRAPH_DESCRIPTION': 'Each hour, every year earns rank-points (1st=1.00, 2nd=0.92, ..., 12th=0.08). Score accumulates live as the video plays.',
     'TREND_GRAPH_DESC_COLOR': '#bbb',
-    'TREND_GRAPH_DESC_FONTSIZE': 8,
-    'TREND_GRAPH_DESC_POS': (0.5, 0.015),
+    'TREND_GRAPH_DESC_FONTSIZE': 7,
+    'TREND_GRAPH_DESC_POS': (0.5, 0.008),
+    'TREND_BAR_WIDTH': 0.7,
+    'TREND_LABEL_FONTSIZE': 9,
+    'TREND_LABEL_OFFSET': 0.5,
 }
 
 MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -226,24 +229,32 @@ def create_video():
     trend_ax.tick_params(colors=CONFIG['TREND_GRAPH_TICK_COLOR'],
                          labelsize=CONFIG['TREND_GRAPH_XLABEL_FONTSIZE'])
 
-    trend_bars = trend_ax.bar([str(y) for y in YEARS], [0]*len(YEARS),
+    x_positions = range(len(YEARS))
+    trend_bars = trend_ax.bar(x_positions, [0]*len(YEARS),
+                              width=CONFIG['TREND_BAR_WIDTH'],
                               color=[CONFIG['COLORS'][y] for y in YEARS],
                               edgecolor=CONFIG['BAR_EDGE_COLOR'],
                               linewidth=CONFIG['BAR_LINEWIDTH'],
                               alpha=CONFIG['BAR_ALPHA'])
 
     trend_labels = []
-    for i in range(len(YEARS)):
-        tl = trend_ax.text(i, 0, '', ha='center', va='bottom',
+    for i, year in enumerate(YEARS):
+        tl = trend_ax.text(i, CONFIG['TREND_LABEL_OFFSET'], '',
+                           ha='center', va='bottom',
                            color=CONFIG['TREND_GRAPH_YLABEL_COLOR'],
-                           fontsize=CONFIG['TREND_GRAPH_YLABEL_FONTSIZE'],
+                           fontsize=CONFIG['TREND_LABEL_FONTSIZE'],
                            fontweight='bold')
         trend_labels.append(tl)
+
+    trend_ax.set_xticks(list(x_positions))
+    trend_ax.set_xticklabels([str(y) for y in YEARS],
+                             color=CONFIG['TREND_GRAPH_XLABEL_COLOR'],
+                             fontsize=CONFIG['TREND_GRAPH_XLABEL_FONTSIZE'])
 
     trend_ax.set_title(CONFIG['TREND_GRAPH_TITLE'],
                        color=CONFIG['TREND_GRAPH_TITLE_COLOR'],
                        fontsize=CONFIG['TREND_GRAPH_TITLE_FONTSIZE'],
-                       fontweight='bold')
+                       fontweight='bold', pad=8)
     trend_ax.set_ylabel(CONFIG['TREND_GRAPH_YLABEL'],
                         color=CONFIG['TREND_GRAPH_YLABEL_COLOR'],
                         fontsize=CONFIG['TREND_GRAPH_YLABEL_FONTSIZE'])
@@ -251,6 +262,7 @@ def create_video():
                         color=CONFIG['TREND_GRAPH_XLABEL_COLOR'],
                         fontsize=CONFIG['TREND_GRAPH_XLABEL_FONTSIZE'])
     trend_ax.set_ylim(0, 1)  # will auto-expand as scores grow
+    trend_ax.grid(axis='y', color='#333', linestyle='--', alpha=0.3, linewidth=0.5)
 
     trend_desc = fig.text(*CONFIG['TREND_GRAPH_DESC_POS'],
                           CONFIG['TREND_GRAPH_DESCRIPTION'],
