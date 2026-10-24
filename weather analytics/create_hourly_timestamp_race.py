@@ -10,10 +10,11 @@ from matplotlib import rcParams
 HOURLY_FILE = 'karachi_weather_hourly.json'
 VIDEO_FILE = 'karachi_weather_hourly_timestamp_race.mp4'
 FPS = 20
-YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 
 CONFIG = {
     'COLORS': {
+        2020: '#1abc9c',
         2021: '#3498db',
         2022: '#2ecc71',
         2023: '#e74c3c',
@@ -30,7 +31,7 @@ CONFIG = {
     'FIG_FACECOLOR': '#0f0f23',
     'AX_FACECOLOR': '#0f0f23',
     'FONT_FAMILY': 'sans-serif',
-    'TITLE': 'Karachi Hourly Temperature Race 2021-2026',
+    'TITLE': 'Karachi Hourly Temperature Race 2020-2026',
     'TITLE_COLOR': 'white',
     'TITLE_FONTSIZE': 18,
     'TITLE_FONTWEIGHT': 'bold',
@@ -57,7 +58,7 @@ CONFIG = {
     'SOURCE_FONTSIZE': 8,
     'SOURCE_POS': (0.99, 0.012),
     'SOURCE_HA': 'right',
-    'SUBPLOTS_ADJUST': {'top': 0.80, 'bottom': 0.13, 'left': 0.07, 'right': 0.98},
+    'SUBPLOTS_ADJUST': {'top': 0.80, 'bottom': 0.18, 'left': 0.07, 'right': 0.98},
     'TEXT_POS_X': 0.6,
     'BAR_TEXT_FONTSIZE': 9.2,
     'BAR_TEXT_FONTWEIGHT': 'bold',
@@ -71,6 +72,21 @@ CONFIG = {
     'SCORE_POS_X': 0.5,
     'SCORE_START_Y': 0.84,
     'SCORE_LINE_SPACING': 0.025,
+    'TREND_GRAPH_RECT': [0.07, 0.04, 0.86, 0.10],
+    'TREND_GRAPH_TITLE': 'Cumulative Rank-Points Score by Year',
+    'TREND_GRAPH_TITLE_COLOR': '#fff',
+    'TREND_GRAPH_TITLE_FONTSIZE': 11,
+    'TREND_GRAPH_YLABEL': 'Score',
+    'TREND_GRAPH_YLABEL_COLOR': '#aaa',
+    'TREND_GRAPH_YLABEL_FONTSIZE': 9,
+    'TREND_GRAPH_XLABEL': 'Year',
+    'TREND_GRAPH_XLABEL_COLOR': '#aaa',
+    'TREND_GRAPH_XLABEL_FONTSIZE': 9,
+    'TREND_GRAPH_TICK_COLOR': '#888',
+    'TREND_GRAPH_DESCRIPTION': 'Each hour, every year earns rank-points (1st=1.00, 2nd=0.86, ..., 7th=0.14). Score accumulates live as the video plays.',
+    'TREND_GRAPH_DESC_COLOR': '#bbb',
+    'TREND_GRAPH_DESC_FONTSIZE': 8,
+    'TREND_GRAPH_DESC_POS': (0.5, 0.015),
 }
 
 MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
@@ -195,6 +211,48 @@ def create_video():
              ha=CONFIG['SOURCE_HA'], fontsize=CONFIG['SOURCE_FONTSIZE'],
              color=CONFIG['SOURCE_COLOR'])
 
+    # ---- Trend graph: cumulative score by year (bottom of figure) ----
+    trend_ax = fig.add_axes(CONFIG['TREND_GRAPH_RECT'])
+    trend_ax.set_facecolor(CONFIG['AX_FACECOLOR'])
+    trend_ax.spines['top'].set_visible(False)
+    trend_ax.spines['right'].set_visible(False)
+    trend_ax.spines['bottom'].set_color(CONFIG['TREND_GRAPH_TICK_COLOR'])
+    trend_ax.spines['left'].set_color(CONFIG['TREND_GRAPH_TICK_COLOR'])
+    trend_ax.tick_params(colors=CONFIG['TREND_GRAPH_TICK_COLOR'],
+                         labelsize=CONFIG['TREND_GRAPH_XLABEL_FONTSIZE'])
+
+    trend_bars = trend_ax.bar([str(y) for y in YEARS], [0]*len(YEARS),
+                              color=[CONFIG['COLORS'][y] for y in YEARS],
+                              edgecolor=CONFIG['BAR_EDGE_COLOR'],
+                              linewidth=CONFIG['BAR_LINEWIDTH'],
+                              alpha=CONFIG['BAR_ALPHA'])
+
+    trend_labels = []
+    for i in range(len(YEARS)):
+        tl = trend_ax.text(i, 0, '', ha='center', va='bottom',
+                           color=CONFIG['TREND_GRAPH_YLABEL_COLOR'],
+                           fontsize=CONFIG['TREND_GRAPH_YLABEL_FONTSIZE'],
+                           fontweight='bold')
+        trend_labels.append(tl)
+
+    trend_ax.set_title(CONFIG['TREND_GRAPH_TITLE'],
+                       color=CONFIG['TREND_GRAPH_TITLE_COLOR'],
+                       fontsize=CONFIG['TREND_GRAPH_TITLE_FONTSIZE'],
+                       fontweight='bold')
+    trend_ax.set_ylabel(CONFIG['TREND_GRAPH_YLABEL'],
+                        color=CONFIG['TREND_GRAPH_YLABEL_COLOR'],
+                        fontsize=CONFIG['TREND_GRAPH_YLABEL_FONTSIZE'])
+    trend_ax.set_xlabel(CONFIG['TREND_GRAPH_XLABEL'],
+                        color=CONFIG['TREND_GRAPH_XLABEL_COLOR'],
+                        fontsize=CONFIG['TREND_GRAPH_XLABEL_FONTSIZE'])
+    trend_ax.set_ylim(0, 1)  # will auto-expand as scores grow
+
+    trend_desc = fig.text(*CONFIG['TREND_GRAPH_DESC_POS'],
+                          CONFIG['TREND_GRAPH_DESCRIPTION'],
+                          ha='center', va='center',
+                          color=CONFIG['TREND_GRAPH_DESC_COLOR'],
+                          fontsize=CONFIG['TREND_GRAPH_DESC_FONTSIZE'])
+
     total = len(timeline)
 
     # Running cumulative rank-points score per year (accumulates frame by frame)
@@ -233,6 +291,16 @@ def create_video():
                 f'{labels[yi]}   {v:.1f}°C   score: {year_scores[YEARS[yi]]:.1f}'
             )
 
+        # Update trend graph: cumulative score by year
+        for i, year in enumerate(YEARS):
+            trend_bars[i].set_height(year_scores[year])
+            trend_labels[i].set_position((i, year_scores[year]))
+            trend_labels[i].set_text(f'{year_scores[year]:.1f}')
+
+        # Auto-expand y-limit as scores grow
+        max_score = max(year_scores.values()) if year_scores else 1
+        trend_ax.set_ylim(0, max_score * 1.1 if max_score > 0 else 1)
+
         ampm = 'AM' if hour < 12 else 'PM'
         h12 = hour % 12 or 12
         clock_text.set_text(
@@ -249,7 +317,9 @@ def create_video():
 
         progress_bar.set_width((idx + 1) / total * 0.9)
         return (list(bars) + bar_texts
-                + [clock_text, diff_text, progress_bar])
+                + [clock_text, diff_text, progress_bar]
+                + list(trend_bars) + list(trend_labels)
+                + [trend_desc])
 
     import subprocess
 

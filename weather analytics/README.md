@@ -160,7 +160,7 @@ Change these to any latitude/longitude, then re-run the fetch + video scripts.
 
 ```python
 CURRENT_YEAR = 2026
-YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 ```
 
 Update `CURRENT_YEAR` and `YEARS`, then re-run. The comparison always uses the
@@ -202,19 +202,33 @@ its temperature rank among all years in `YEARS`:
 | Rank | Points | Meaning |
 |------|--------|---------|
 | 1st (hottest) | 1.00 | Highest temperature at this hour |
-| 2nd | 0.83 | Second hottest |
-| 3rd | 0.67 | Middle-high |
-| 4th | 0.50 | Middle-low |
-| 5th | 0.33 | Second coldest |
-| 6th (coldest) | 0.17 | Lowest temperature at this hour |
+| 2nd | 0.86 | Second hottest |
+| 3rd | 0.71 | Middle-high |
+| 4th | 0.57 | Middle |
+| 5th | 0.43 | Middle-low |
+| 6th | 0.29 | Second coldest |
+| 7th (coldest) | 0.14 | Lowest temperature at this hour |
 
 Scores accumulate frame by frame as the video plays. A year's bar shows
 `score: X.X` — the running sum of all rank-points earned so far. The higher the
 score, the more consistently that year ranked near the top across all hours.
 
 Example: if 2026 is the hottest at 1 AM on Jan 1, its score becomes `1.00`.
-If 2022 is second hottest, its score becomes `0.83`, and so on. The score grows
+If 2022 is second hottest, its score becomes `0.86`, and so on. The score grows
 continuously throughout the video.
+
+### Cumulative score trend graph (bottom of video)
+
+A trend graph at the bottom of each frame shows the cumulative rank-points score
+for every year side by side:
+
+- **X-axis:** Year (2020–2026)
+- **Y-axis:** Cumulative score (grows as the video plays)
+- Each bar is colored by year and shows its current total score on top
+
+The trend graph updates live every frame, so you can watch how the scores
+diverge over time — years that consistently rank hotter pull ahead, while
+years that consistently rank cooler fall behind.
 
 ---
 

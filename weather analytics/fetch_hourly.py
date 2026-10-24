@@ -5,7 +5,7 @@ import os
 KARACHI_LAT = 24.8607
 KARACHI_LON = 67.0011
 CURRENT_YEAR = 2026
-YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 HOURLY_FILE = 'karachi_weather_hourly.json'
 API = 'https://archive-api.open-meteo.com/v1/archive'
 
