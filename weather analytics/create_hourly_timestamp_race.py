@@ -10,10 +10,15 @@ from matplotlib import rcParams
 HOURLY_FILE = 'karachi_weather_hourly.json'
 VIDEO_FILE = 'karachi_weather_hourly_timestamp_race.mp4'
 FPS = 20
-YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
 
 CONFIG = {
     'COLORS': {
+        2015: '#fd79a8',
+        2016: '#6c5ce7',
+        2017: '#a29bfe',
+        2018: '#74b9ff',
+        2019: '#00b894',
         2020: '#1abc9c',
         2021: '#3498db',
         2022: '#2ecc71',
@@ -31,7 +36,7 @@ CONFIG = {
     'FIG_FACECOLOR': '#0f0f23',
     'AX_FACECOLOR': '#0f0f23',
     'FONT_FAMILY': 'sans-serif',
-    'TITLE': 'Karachi Hourly Temperature Race 2020-2026',
+    'TITLE': 'Karachi Hourly Temperature Race 2015-2026',
     'TITLE_COLOR': 'white',
     'TITLE_FONTSIZE': 18,
     'TITLE_FONTWEIGHT': 'bold',
@@ -83,7 +88,7 @@ CONFIG = {
     'TREND_GRAPH_XLABEL_COLOR': '#aaa',
     'TREND_GRAPH_XLABEL_FONTSIZE': 9,
     'TREND_GRAPH_TICK_COLOR': '#888',
-    'TREND_GRAPH_DESCRIPTION': 'Each hour, every year earns rank-points (1st=1.00, 2nd=0.86, ..., 7th=0.14). Score accumulates live as the video plays.',
+    'TREND_GRAPH_DESCRIPTION': 'Each hour, every year earns rank-points (1st=1.00, 2nd=0.92, ..., 12th=0.08). Score accumulates live as the video plays.',
     'TREND_GRAPH_DESC_COLOR': '#bbb',
     'TREND_GRAPH_DESC_FONTSIZE': 8,
     'TREND_GRAPH_DESC_POS': (0.5, 0.015),
@@ -117,7 +122,7 @@ def build_timeline(year_maps):
 def compute_timestamp_scores(year_maps, month, day, hour):
     """Compute rank-points scores for a single timestamp.
 
-    rank 1 (hottest) -> 6/6, rank 2 -> 5/6, ..., rank 6 -> 1/6.
+    rank 1 (hottest) -> 12/12, rank 2 -> 11/12, ..., rank 12 -> 1/12.
     Returns dict {year: score_for_this_timestamp}.
     """
     n_years = len(YEARS)

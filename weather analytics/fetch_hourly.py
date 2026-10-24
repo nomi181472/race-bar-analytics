@@ -5,12 +5,12 @@ import os
 KARACHI_LAT = 24.8607
 KARACHI_LON = 67.0011
 CURRENT_YEAR = 2026
-YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
 HOURLY_FILE = 'karachi_weather_hourly.json'
 API = 'https://archive-api.open-meteo.com/v1/archive'
 
 def fetch_hourly(year):
-    end = f'{year}-12-31' if year < CURRENT_YEAR else f'{year}-10-19'
+    end = f'{year}-10-23'
     params = {
         'latitude': KARACHI_LAT,
         'longitude': KARACHI_LON,
